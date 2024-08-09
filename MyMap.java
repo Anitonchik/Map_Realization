@@ -1,12 +1,9 @@
 import java.util.*;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class MyMap <K, V> implements Map<K, V> {
+public class MyMap<K, V> implements Map<K, V> {
     ArrayList<MyMap.MyEntry<K, V>> myMap;
-    volatile int count;
-    //ReadWriteLock lock;
+    int count;
     ReentrantLock lock;
 
     public MyMap() {
@@ -15,27 +12,33 @@ public class MyMap <K, V> implements Map<K, V> {
     }
 
     boolean equalsKeys(Object _key, Object Key) {
-        if (_key == Key) {
-            return true;
-        }
-        if (_key instanceof Integer && Key instanceof Integer) {
-            return _key == Key;
-        } else if (_key instanceof Character && Key instanceof Character) {
-            char str_key = (char) _key;
-            char strKey = (char) Key;
-
-            return str_key == strKey;
-        } else if (_key instanceof String str_key && Key instanceof String strKey) {
-            if (str_key.length() != strKey.length()) {
-                return false;
+        lock.lock();
+        try {
+            if (_key == Key) {
+                return true;
             }
+            if (_key instanceof Integer && Key instanceof Integer) {
+                return _key == Key;
+            } else if (_key instanceof Character && Key instanceof Character) {
+                char str_key = (char) _key;
+                char strKey = (char) Key;
 
-            for (int i = 0; i < str_key.length(); i++) {
-                if (str_key.charAt(i) != strKey.charAt(i)) {
+                return str_key == strKey;
+            } else if (_key instanceof String str_key && Key instanceof String strKey) {
+                if (str_key.length() != strKey.length()) {
                     return false;
                 }
+
+                for (int i = 0; i < str_key.length(); i++) {
+                    if (str_key.charAt(i) != strKey.charAt(i)) {
+                        return false;
+                    }
+                }
+                return true;
             }
-            return true;
+        }
+        finally {
+            lock.unlock();
         }
         return false;
     }
@@ -43,20 +46,17 @@ public class MyMap <K, V> implements Map<K, V> {
     @Override
     public int size() {
         int _count = 0;
-        //lock.readLock().lock();
         lock.lock();
         for (MyEntry<K, V> pair : myMap) {
             _count++;
         }
         count = _count;
-        //lock.readLock().unlock();
         lock.unlock();
         return count;
     }
 
     @Override
     public boolean isEmpty() {
-        //lock.readLock().lock();
         lock.lock();
         if (myMap == null) {
             return true;
@@ -70,9 +70,8 @@ public class MyMap <K, V> implements Map<K, V> {
         if (_key == null) {
             throw new NullPointerException();
         }
-        //lock.readLock().lock();
-        lock.lock();
 
+        lock.lock();
 
         if (!myMap.isEmpty()) {
             K check_key = myMap.getFirst().getKey();
@@ -122,7 +121,6 @@ public class MyMap <K, V> implements Map<K, V> {
             }
         }
         finally {
-            //lock.readLock().unlock();
             lock.unlock();
         }
         return false;
@@ -134,7 +132,6 @@ public class MyMap <K, V> implements Map<K, V> {
         if (!_value.getClass().isInstance(check_value)) {
             throw new ClassCastException();
         }
-        //lock.readLock().lock();
         lock.lock();
         try {
             for (MyEntry<K, V> pair : myMap) {
@@ -182,7 +179,6 @@ public class MyMap <K, V> implements Map<K, V> {
             }
         }
         finally {
-            //lock.readLock().unlock();
             lock.unlock();
         }
         return false;
@@ -190,7 +186,6 @@ public class MyMap <K, V> implements Map<K, V> {
 
     @Override
     public V get(Object key) {
-        //lock.readLock().lock();
         lock.lock();
         if (!myMap.isEmpty() && !key.getClass().isInstance(myMap.getFirst().getKey())) {
             throw new ClassCastException();
@@ -206,7 +201,6 @@ public class MyMap <K, V> implements Map<K, V> {
             }
         }
         finally {
-            //lock.readLock().unlock();
             lock.unlock();
         }
         return null;
@@ -217,15 +211,9 @@ public class MyMap <K, V> implements Map<K, V> {
         if (_key == null) {
             throw new NullPointerException("The key has a value of null");
         }
-        //lock.readLock().lock();
         lock.lock();
-        try {
-            if (containsKey(_key)) {
-                return get(_key);
-            }
-        } finally {
-            /*lock.readLock().unlock();
-            lock.writeLock().lock();*/
+        if (containsKey(_key)) {
+            return get(_key);
         }
         try {
             K Key = (K) _key;
@@ -243,7 +231,6 @@ public class MyMap <K, V> implements Map<K, V> {
             myMap.add(pair);
             count++;
         } finally {
-            //lock.writeLock().unlock();
             lock.unlock();
         }
         return null;
@@ -263,24 +250,18 @@ public class MyMap <K, V> implements Map<K, V> {
         } catch (ClassCastException ex) {
             throw new ClassCastException("The key has the wrong type");
         }
-        //lock.readLock().lock();
         lock.lock();
         try {
             for (int i = 0; i < myMap.size(); i++) {
                 if (equalsKeys(myMap.get(i).getKey(), check_key)) {
-                    /*lock.readLock().unlock();
-                    lock.writeLock().lock();*/
                     V value = myMap.get(i).getValue();
                     myMap.remove(i);
                     count--;
-                    /*lock.writeLock().unlock();
-                    lock.readLock().lock();*/
                     return value;
                 }
             }
         }
         finally {
-            //lock.readLock().unlock();
             lock.unlock();
         }
         return null;
@@ -288,70 +269,59 @@ public class MyMap <K, V> implements Map<K, V> {
 
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
-       // lock.writeLock().lock();
         lock.lock();
+        count = 0;
         for (Object Key : m.keySet()) {
             put(Key, m.get(Key));
-            count++;
         }
-        //lock.writeLock().unlock();
         lock.unlock();
     }
 
     @Override
     public void clear() {
-        //lock.writeLock().lock();
         lock.lock();
         for (int i = 0; i < count; i++) {
             remove(myMap.get(i).getKey());
             i--;
         }
-        //lock.writeLock().unlock();
         lock.unlock();
     }
 
     @Override
     public Set<K> keySet() {
-        //lock.readLock().lock();
         lock.lock();
         Set<K> setKey = new HashSet<>();
         for (MyEntry<K, V> pair : myMap) {
             setKey.add(pair.getKey());
         }
-        //lock.readLock().unlock();
         lock.unlock();
         return setKey;
     }
 
     @Override
     public Collection<V> values() {
-        //lock.readLock().lock();
         lock.lock();
         List<V> Values = new ArrayList<>();
         for (MyEntry<K, V> pair : myMap) {
             Values.add(pair.getValue());
         }
-        //lock.readLock().unlock();
         lock.unlock();
         return Values;
     }
 
     @Override
     public Set<Entry<K, V>> entrySet() {
-        //lock.readLock().lock();
         lock.lock();
         Set<Entry<K, V>> setPair = new HashSet<>();
         for (Entry<K, V> pair : myMap) {
             setPair.add(pair);
         }
-        //lock.readLock().unlock();
         lock.unlock();
         return setPair;
     }
 
     @Override
     public String toString(){
-        //lock.readLock().lock();
         lock.lock();
         StringBuilder res = new StringBuilder();
         res.append("{");
@@ -362,7 +332,6 @@ public class MyMap <K, V> implements Map<K, V> {
             }
         }
         res.append("}");
-        //lock.readLock().unlock();
         lock.unlock();
         return res.toString();
     }
@@ -402,10 +371,11 @@ public class MyMap <K, V> implements Map<K, V> {
             }
             return false;
         }
-       /* @Override
+
+        @Override
         public int hashCode(){
             return 31 * Key.hashCode() + Value.hashCode();
-        }*/
+        }
 
         @Override
         public String toString(){

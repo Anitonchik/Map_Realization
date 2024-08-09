@@ -5,8 +5,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 class MyMapTest {
     MyMap<Integer, String> testMap;
@@ -17,8 +15,7 @@ class MyMapTest {
     List<String> listValues;
     Set<Map.Entry<Integer, String>> setOfEntry;
 
-    int capacityOfOneThread = 50;
-    Lock lock = new ReentrantLock();
+    int capacityOfOneThread = 25;
 
     @BeforeEach
     void createMap(){
@@ -48,62 +45,53 @@ class MyMapTest {
         listValues.clear();
     }
 
-    // тест на потокобезопасность
     @Test
-    void test_thread(){
+    void test_threadSafety() throws InterruptedException {
         testMap.clear();
         testMap = new MyMap<>();
-        Runnable runnable1 = () -> {
+
+        Runnable run1 = () -> {
             for (int i = 0; i < capacityOfOneThread; i++){
-                System.out.println(testMap.size());
-                testMap.put(i, "///");
-                //lock = new ReentrantLock();
-                //lock.lock();
-                System.out.println(Thread.currentThread().getName() + ":" + testMap);
-                System.out.println(testMap.size());
-                //lock.unlock();
+                testMap.put(i, "...");
             }
         };
 
-        Runnable runnable2 = () -> {
-            for (int i = 0; i < capacityOfOneThread; i++){
-                //lock.lock();
-                if (testMap.count > 0){
-                    testMap.remove(testMap.myMap.getFirst().Key);
-                }
-                System.out.println(Thread.currentThread().getName() + ":" + testMap);
-                System.out.println(testMap.size());
-                //lock.unlock();
+        Runnable run2 = () -> {
+            for (int i = capacityOfOneThread; i < capacityOfOneThread * 2; i++){
+                testMap.put(i, "...");
             }
         };
-        //MyThread1 myThread = new MyThread1();
-        //MyThread.keyNumber = 0;
-        Thread firstThread = new Thread(runnable1);
+
+        Runnable run3 = () -> {
+            for (int i = capacityOfOneThread * 2; i < capacityOfOneThread * 3; i++){
+                testMap.put(i, "...");
+            }
+        };
+
+        Runnable run4 = () -> {
+            for (int i = capacityOfOneThread * 3; i < capacityOfOneThread * 4; i++){
+                testMap.put(i, "...");
+            }
+        };
+
+        Thread firstThread = new Thread(run1);
         firstThread.start();
-        Thread secondThread = new Thread(runnable2);
+        Thread secondThread = new Thread(run2);
         secondThread.start();
+        Thread thirdThread = new Thread(run3);
+        thirdThread.start();
+        Thread fourthThread = new Thread(run4);
+        fourthThread.start();
+
+        firstThread.join();
+        secondThread.join();
+        thirdThread.join();
+        fourthThread.join();
+        assertEquals(capacityOfOneThread * 4, testMap.size());
     }
 
-   /* class MyThread1 extends Thread{
-        int capacityOfOneThread = 50;
-        static int keyNumber; //в мап будут добавлены ключи от 1 до 100
-        public void run(){
-            for (int i = 0; i < capacityOfOneThread; i++){
-                lock.lock();
-                keyNumber++;
-                lock.unlock();
-                testMap.put(keyNumber, "...");
-                System.out.println(Thread.currentThread().getName() + ":" + keyNumber);
-
-            }
-            System.out.println(testMap.keySet());
-            System.out.println(testMap.size());
-        }
-
-    }*/
-
     @Test
-    void test_equals_Keys() {
+    void test_equalsKeys() {
         Object first = "fgh";
         Object second = "fkj";
         assertFalse(testMap.equalsKeys(first, second));
@@ -170,7 +158,7 @@ class MyMapTest {
 
     @Test
     void test_clear() {
-        System.out.println("Testing method clear()");
+        System.out.println("Testing method clear():");
         System.out.println("Map content before purification");
         System.out.println(testMap.toString());
         testMap.clear();
