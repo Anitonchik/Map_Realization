@@ -99,30 +99,30 @@ public class Main {
                     break;
                 case 7:
                     System.out.println("enter entry (key 'enter' value)");
-                    Object key1 = null;
+                    Object keyPut = null;
                     if (typeKey == 1){
-                        key1 = scanner.nextInt();
+                        keyPut = scanner.nextInt();
                     }
                     if (typeKey == 2){
-                        key1 = scanner.next().charAt(0);
+                        keyPut = scanner.next().charAt(0);
                     }
                     if (typeKey == 3){
-                        key1 = scanner.next();
+                        keyPut = scanner.next();
                     }
-                    Object value1 = null;
+                    Object valuePut = null;
                     if (typeValue == 1){
-                        value1 = scanner.nextInt();
+                        valuePut = scanner.nextInt();
                     }
                     if (typeValue == 2){
-                        value1 = scanner.next().charAt(0);
+                        valuePut = scanner.next().charAt(0);
                     }
                     if (typeValue == 3){
-                        value1 = scanner.next();
+                        valuePut = scanner.next();
                     }
                     if (typeValue == 4){
-                        value1 = scanner.nextBoolean();
+                        valuePut = scanner.nextBoolean();
                     }
-                    System.out.println(myMap.put(key1, value1));
+                    System.out.println(myMap.put(keyPut, valuePut));
                     break;
                 case 8:
                     System.out.println("enter the key to delete the corresponding pair");
