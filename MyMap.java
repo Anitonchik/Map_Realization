@@ -1,16 +1,20 @@
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MyMap <K, V> implements Map<K, V> {
     ArrayList<MyMap.MyEntry<K, V>> myMap;
     volatile int count;
+    //ReadWriteLock lock;
+    ReentrantLock lock;
 
     public MyMap() {
         myMap = new ArrayList<>();
+        lock = new ReentrantLock();
     }
 
-    synchronized boolean equalsKeys(Object _key, Object Key) {
+    boolean equalsKeys(Object _key, Object Key) {
         if (_key == Key) {
             return true;
         }
@@ -37,38 +41,37 @@ public class MyMap <K, V> implements Map<K, V> {
     }
 
     @Override
-    synchronized public int size() {
+    public int size() {
         int _count = 0;
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+        //lock.readLock().lock();
+        lock.lock();
         for (MyEntry<K, V> pair : myMap) {
             _count++;
         }
         count = _count;
-        lock.readLock().unlock();
+        //lock.readLock().unlock();
+        lock.unlock();
         return count;
     }
 
     @Override
-    synchronized public boolean isEmpty() {
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+    public boolean isEmpty() {
+        //lock.readLock().lock();
+        lock.lock();
         if (myMap == null) {
             return true;
         }
-        lock.readLock().unlock();
+        lock.unlock();
         return count == 0;
     }
 
-    // выброс ошибок
     @Override
-    synchronized public boolean containsKey(Object _key) {
-        if (_key == null /*&& _key instanceof java.lang.Nullable*/) {
+    public boolean containsKey(Object _key) {
+        if (_key == null) {
             throw new NullPointerException();
         }
-
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+        //lock.readLock().lock();
+        lock.lock();
 
 
         if (!myMap.isEmpty()) {
@@ -119,20 +122,20 @@ public class MyMap <K, V> implements Map<K, V> {
             }
         }
         finally {
-            lock.readLock().unlock();
+            //lock.readLock().unlock();
+            lock.unlock();
         }
         return false;
     }
 
-    // выброс ошибок
     @Override
-    synchronized public boolean containsValue(Object _value) {
+    public boolean containsValue(Object _value) {
         V check_value = myMap.getFirst().getValue();
         if (!_value.getClass().isInstance(check_value)) {
             throw new ClassCastException();
         }
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+        //lock.readLock().lock();
+        lock.lock();
         try {
             for (MyEntry<K, V> pair : myMap) {
                 V Value = pair.getValue();
@@ -179,15 +182,16 @@ public class MyMap <K, V> implements Map<K, V> {
             }
         }
         finally {
-            lock.readLock().unlock();
+            //lock.readLock().unlock();
+            lock.unlock();
         }
         return false;
     }
 
     @Override
-    synchronized public V get(Object key) {
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+    public V get(Object key) {
+        //lock.readLock().lock();
+        lock.lock();
         if (!myMap.isEmpty() && !key.getClass().isInstance(myMap.getFirst().getKey())) {
             throw new ClassCastException();
         }
@@ -202,25 +206,26 @@ public class MyMap <K, V> implements Map<K, V> {
             }
         }
         finally {
-            lock.readLock().unlock();
+            //lock.readLock().unlock();
+            lock.unlock();
         }
         return null;
     }
 
     @Override
-    synchronized public V put(Object _key, Object _value) {
+    public V put(Object _key, Object _value) {
         if (_key == null) {
             throw new NullPointerException("The key has a value of null");
         }
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+        //lock.readLock().lock();
+        lock.lock();
         try {
             if (containsKey(_key)) {
                 return get(_key);
             }
         } finally {
-            lock.readLock().unlock();
-            lock.writeLock().lock();
+            /*lock.readLock().unlock();
+            lock.writeLock().lock();*/
         }
         try {
             K Key = (K) _key;
@@ -238,13 +243,14 @@ public class MyMap <K, V> implements Map<K, V> {
             myMap.add(pair);
             count++;
         } finally {
-            lock.writeLock().unlock();
+            //lock.writeLock().unlock();
+            lock.unlock();
         }
         return null;
     }
 
     @Override
-    synchronized public V remove(Object _key) {
+    public V remove(Object _key) {
         if (_key == null) {
             throw new NullPointerException("The key has a value of null");
         }
@@ -257,89 +263,96 @@ public class MyMap <K, V> implements Map<K, V> {
         } catch (ClassCastException ex) {
             throw new ClassCastException("The key has the wrong type");
         }
-        /*ReadWriteLock lock_read = new ReentrantReadWriteLock();
-        lock_read.readLock().lock();*/
+        //lock.readLock().lock();
+        lock.lock();
         try {
             for (int i = 0; i < myMap.size(); i++) {
                 if (equalsKeys(myMap.get(i).getKey(), check_key)) {
-                    /*ReadWriteLock lock_write = new ReentrantReadWriteLock();
-                    lock_write.writeLock().lock();*/
+                    /*lock.readLock().unlock();
+                    lock.writeLock().lock();*/
                     V value = myMap.get(i).getValue();
                     myMap.remove(i);
                     count--;
-                    //lock_write.writeLock().unlock();
+                    /*lock.writeLock().unlock();
+                    lock.readLock().lock();*/
                     return value;
                 }
             }
         }
         finally {
-            //lock_read.readLock().unlock();
+            //lock.readLock().unlock();
+            lock.unlock();
         }
         return null;
     }
 
     @Override
-    synchronized public void putAll(Map<? extends K, ? extends V> m) {
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.writeLock().lock();
+    public void putAll(Map<? extends K, ? extends V> m) {
+       // lock.writeLock().lock();
+        lock.lock();
         for (Object Key : m.keySet()) {
             put(Key, m.get(Key));
             count++;
         }
-        lock.writeLock().unlock();
+        //lock.writeLock().unlock();
+        lock.unlock();
     }
 
     @Override
     public void clear() {
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.writeLock().lock();
+        //lock.writeLock().lock();
+        lock.lock();
         for (int i = 0; i < count; i++) {
             remove(myMap.get(i).getKey());
             i--;
         }
-        lock.writeLock().unlock();
+        //lock.writeLock().unlock();
+        lock.unlock();
     }
 
     @Override
-    synchronized public Set<K> keySet() {
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+    public Set<K> keySet() {
+        //lock.readLock().lock();
+        lock.lock();
         Set<K> setKey = new HashSet<>();
         for (MyEntry<K, V> pair : myMap) {
             setKey.add(pair.getKey());
         }
-        lock.readLock().unlock();
+        //lock.readLock().unlock();
+        lock.unlock();
         return setKey;
     }
 
     @Override
-    synchronized public Collection<V> values() {
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+    public Collection<V> values() {
+        //lock.readLock().lock();
+        lock.lock();
         List<V> Values = new ArrayList<>();
         for (MyEntry<K, V> pair : myMap) {
             Values.add(pair.getValue());
         }
-        lock.readLock().unlock();
+        //lock.readLock().unlock();
+        lock.unlock();
         return Values;
     }
 
     @Override
-    synchronized public Set<Entry<K, V>> entrySet() {
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();
+    public Set<Entry<K, V>> entrySet() {
+        //lock.readLock().lock();
+        lock.lock();
         Set<Entry<K, V>> setPair = new HashSet<>();
         for (Entry<K, V> pair : myMap) {
             setPair.add(pair);
         }
-        lock.readLock().unlock();
+        //lock.readLock().unlock();
+        lock.unlock();
         return setPair;
     }
 
     @Override
-    synchronized public String toString(){
-        /*ReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.readLock().lock();*/
+    public String toString(){
+        //lock.readLock().lock();
+        lock.lock();
         StringBuilder res = new StringBuilder();
         res.append("{");
         for (int i = 0; i < count; i++){
@@ -350,6 +363,7 @@ public class MyMap <K, V> implements Map<K, V> {
         }
         res.append("}");
         //lock.readLock().unlock();
+        lock.unlock();
         return res.toString();
     }
 

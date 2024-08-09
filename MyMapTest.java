@@ -18,6 +18,7 @@ class MyMapTest {
     Set<Map.Entry<Integer, String>> setOfEntry;
 
     int capacityOfOneThread = 50;
+    Lock lock = new ReentrantLock();
 
     @BeforeEach
     void createMap(){
@@ -48,38 +49,31 @@ class MyMapTest {
     }
 
     // тест на потокобезопасность
-    /*@Test
+    @Test
     void test_thread(){
         testMap.clear();
         testMap = new MyMap<>();
-        int capacityOfOneThread = 50;
-        Runnable runnable1 = new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < capacityOfOneThread; i++){
-                    System.out.println(testMap.size());
-                    testMap.put(i, "///");
-                    Lock lock = new ReentrantLock();
-                    lock.lock();
-                    System.out.println(Thread.currentThread().getName() + ":" + testMap);
-                    System.out.println(testMap.size());
-                    lock.unlock();
-                }
+        Runnable runnable1 = () -> {
+            for (int i = 0; i < capacityOfOneThread; i++){
+                System.out.println(testMap.size());
+                testMap.put(i, "///");
+                //lock = new ReentrantLock();
+                //lock.lock();
+                System.out.println(Thread.currentThread().getName() + ":" + testMap);
+                System.out.println(testMap.size());
+                //lock.unlock();
             }
         };
 
-        Runnable runnable2 = new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < capacityOfOneThread; i++){
-                    System.out.println(testMap.size());
-                    testMap.remove(i);
-                    Lock lock = new ReentrantLock();
-                    lock.lock();
-                    System.out.println(Thread.currentThread().getName() + ":" + testMap);
-                    System.out.println(testMap.size());
-                    lock.unlock();
+        Runnable runnable2 = () -> {
+            for (int i = 0; i < capacityOfOneThread; i++){
+                //lock.lock();
+                if (testMap.count > 0){
+                    testMap.remove(testMap.myMap.getFirst().Key);
                 }
+                System.out.println(Thread.currentThread().getName() + ":" + testMap);
+                System.out.println(testMap.size());
+                //lock.unlock();
             }
         };
         //MyThread1 myThread = new MyThread1();
@@ -88,9 +82,6 @@ class MyMapTest {
         firstThread.start();
         Thread secondThread = new Thread(runnable2);
         secondThread.start();
-
-        System.out.println(testMap.keySet());
-        System.out.println(testMap.size());
     }
 
    /* class MyThread1 extends Thread{

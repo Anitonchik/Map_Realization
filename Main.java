@@ -12,8 +12,7 @@ public class Main {
         MyMap<Integer, String> Map = new MyMap<>();
         Map.put(1, "ghj");
         Map.put(2, "hvs;a");
-        int h = mp.hashCode();
-        var o = Map.get(2);
+        System.out.println(Map.remove(2));
 
 
 
